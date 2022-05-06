@@ -1,0 +1,27 @@
+{
+    "title": "Updater",
+    "config": {
+        "step": {
+            "user": {
+                "description": "",
+                "data": {
+                    "title": "项目名称"
+                }
+            }
+        },
+        "error": {},
+        "abort": {}
+    },
+    "options": {
+        "step": {
+            "user": {
+                "description": "",
+                "data": {
+                    "url": "自定义存储库",
+                    "domain": "组件名称"
+                }
+            }
+        },
+        "error": {}
+    }
+}

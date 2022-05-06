@@ -12,7 +12,7 @@ CONFIG_SCHEMA = cv.deprecated(DOMAIN)
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:    
     options = entry.options
     if options.get('url', '') != '' and options.get('domain', '') != '':
-        await hass.config_entries.async_setup_platforms(entry, PLATFORMS)
+        hass.config_entries.async_setup_platforms(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(update_listener))
     return True
 

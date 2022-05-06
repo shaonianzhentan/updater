@@ -12,6 +12,7 @@ from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .manifest import manifest, Manifest
+from .file_api import get_current_path, download
 
 NAME = manifest.name
 DOMAIN = manifest.domain
@@ -38,26 +39,42 @@ class EntityUpdate(UpdateEntity):
         self._attr_release_url = url
         self._attr_latest_version = '主分支'
         self.manifest = Manifest(domain)
+        # 隐藏更新提示
+        self._attributes = {
+            'skipped_version': self._attr_latest_version
+        }
 
     @property
     def name(self):
         return self.manifest.domain
 
     @property
+    def extra_state_attributes(self):
+        return self._attributes
+
+    @property
     def installed_version(self):
         return self.manifest.version or '未安装'
 
     async def async_install(self, version: str, backup: bool):
-        config_dir = self.hass.config.path('')
-        url = self._attr_release_url
-        arr = url.strip('/').split('/')
-        project = arr[len(arr) - 1]
-        os.system(f'''
-cd {config_dir}
-curl https://gitee.com/shaonianzhentan/updater/raw/main/bash/install.sh | sudo bash {url} {project} {self.name}
-        ''')
+        sh_file = get_current_path(f'{self.name}.sh')
+        if self.name == 'hacs':
+            # download file of hacs install script
+            url = 'https://gitee.com/shaonianzhentan/updater/raw/main/bash/hacs.sh'
+            await download(url, sh_file)
+            os.system(f'sh {sh_file}')
+        else:
+            # download file of bash script
+            url = 'https://gitee.com/shaonianzhentan/updater/raw/main/bash/install.sh'
+            await download(url, sh_file)
+            # execute bash script
+            url = self._attr_release_url
+            arr = url.strip('/').split('/')
+            project = arr[len(arr) - 1]
+            os.system(f'sh {sh_file} {url} {project} {self.name}')
+
         self._attr_title = f'{self.name} 重启生效'
         self.manifest.update()
 
     async def async_update(self):
-        print('update')
+        print(f'update {self.name}')

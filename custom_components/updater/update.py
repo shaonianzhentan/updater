@@ -12,7 +12,7 @@ from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .manifest import manifest, Manifest
-from .file_api import get_current_path, download, git_info
+from .file_api import custom_components_path, download, git_info
 
 NAME = manifest.name
 DOMAIN = manifest.domain
@@ -76,7 +76,7 @@ class EntityUpdate(UpdateEntity):
         return self.commit_message
 
     async def async_install(self, version: str, backup: bool):
-        sh_file = get_current_path(f'{self.name}.sh')
+        sh_file = custom_components_path(f'{self.name}.sh')
         if self.name == 'hacs':
             # download file of hacs install script
             url = 'https://gitee.com/shaonianzhentan/updater/raw/main/bash/hacs.sh'

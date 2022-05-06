@@ -102,11 +102,16 @@ class EntityUpdate(UpdateEntity):
 
     async def async_update(self):
         print(f'update {self.name}')
-        url = f'https://gitee.com/api/v5/repos/{self.git_author}/{self.git_project}/branches/{self.git_branch}'
+        git_api = 'api.github.com' 
+        if self.git_source == 'gitee':
+            git_api = 'gitee.com/api/v5'
+        url = f'https://{git_api}/repos/{self.git_author}/{self.git_project}/branches/{self.git_branch}'
+        
         res = await self.hass.async_add_executor_job(requests.get, (url))
         data = res.json()
         commit = data['commit']['commit']
         self.commit_message = commit.get('message')
         committer = commit.get('committer')
-        dt = datetime.datetime.fromisoformat(committer.get('date'))
+        date_str = committer.get('date')[:19]
+        dt = datetime.datetime.fromisoformat(f'{date_str}+08:00')
         self._attr_latest_version = dt.strftime('%Y-%m-%d %H:%M:%S')

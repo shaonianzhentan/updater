@@ -11,7 +11,6 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .file_api import get_current_path
 from .manifest import manifest, Manifest
 
 NAME = manifest.name
@@ -49,16 +48,15 @@ class EntityUpdate(UpdateEntity):
         return self.manifest.version or '未安装'
 
     async def async_install(self, version: str, backup: bool):
-        sh_file = get_current_path('updater.sh')
         config_dir = self.hass.config.path('')
+        url = self._attr_release_url
+        arr = url.strip('/').split('/')
+        project = arr[len(arr) - 1]
         os.system(f'''
 cd {config_dir}
-git clone {self._attr_release_url} --depth=1
-rm -rf custom_components/{self.name}
-cp -r ./{self.name}/custom_components/{self.name} custom_components/{self.name}
-rm -rf {self.name}
+curl https://gitee.com/shaonianzhentan/updater/raw/main/bash/install.sh | sudo bash {url} {project} {self.name}
         ''')
-        self._attr_title = f'重启生效 {self.name}'
+        self._attr_title = f'{self.name} 重启生效'
         self.manifest.update()
 
     async def async_update(self):

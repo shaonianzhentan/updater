@@ -3,25 +3,16 @@
     "config": {
         "step": {
             "user": {
-                "description": "",
+                "description": "存储库地址需要精确到组件名称",
                 "data": {
-                    "title": "项目名称"
+                    "title": "项目名称",
+                    "url": "自定义存储库"
                 }
             }
         },
-        "error": {},
+        "error": {
+            "url": "自定义存储库格式错误"
+        },
         "abort": {}
-    },
-    "options": {
-        "step": {
-            "user": {
-                "description": "",
-                "data": {
-                    "url": "自定义存储库",
-                    "domain": "组件名称"
-                }
-            }
-        },
-        "error": {}
     }
 }

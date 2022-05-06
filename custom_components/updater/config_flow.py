@@ -10,6 +10,12 @@ from homeassistant.core import callback
 from homeassistant.config_entries import ConfigFlow, OptionsFlow, ConfigEntry
 
 from .const import DOMAIN
+from .file_api import git_info
+
+DATA_SCHEMA = vol.Schema({
+    vol.Required("title"): str,
+    vol.Required("url"): str,
+})
 
 class SimpleConfigFlow(ConfigFlow, domain=DOMAIN):
 
@@ -19,38 +25,24 @@ class SimpleConfigFlow(ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
 
-        if user_input is None:
-            errors = {}
-            DATA_SCHEMA = vol.Schema({
-                vol.Required("title"): str,
-            })
-            return self.async_show_form(step_id="user", data_schema=DATA_SCHEMA, errors=errors)
-
-        return self.async_create_entry(title=user_input['title'], data=user_input)
-
-    @staticmethod
-    @callback
-    def async_get_options_flow(entry: ConfigEntry):
-        return OptionsFlowHandler(entry)
-
-
-class OptionsFlowHandler(OptionsFlow):
-    def __init__(self, config_entry: ConfigEntry):
-        self.config_entry = config_entry
-
-    async def async_step_init(self, user_input=None):
-        return await self.async_step_user(user_input)
-
-    async def async_step_user(self, user_input=None):
         errors = {}
-        if user_input is None:
-            options = self.config_entry.options
-            errors = {}
-            DATA_SCHEMA = vol.Schema({
-                vol.Required("url", default=options.get('url', '')): str,
-                vol.Required("domain", default=options.get('domain', '')): str
-            })
-            return self.async_show_form(step_id="user", data_schema=DATA_SCHEMA, errors=errors)
-        # 选项更新
-        user_input['url'] = user_input['url'].strip()
-        return self.async_create_entry(title='', data=user_input)
+        if user_input is not None:
+            
+            # validate url format
+            info = git_info(user_input['url'])
+            if  info is None:
+                errors['base'] = 'url'
+
+            # validate success
+            if errors.get('base', '') == '':
+                title = user_input['title']
+                return self.async_create_entry(title=title, data={
+                    'title': title,
+                    'branch': info['branch'],
+                    'project': info['project'],
+                    'domain': info['domain'],
+                    'url': info['url']
+                })
+
+        return self.async_show_form(step_id="user", data_schema=DATA_SCHEMA, errors=errors)
+

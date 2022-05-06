@@ -1,10 +1,11 @@
 #!/bin/bash
 
-URL=$1
-PROJECT=$2
-DOMAIN=$3
+BRANCH=$1
+URL=$2
+PROJECT=$3
+DOMAIN=$4
 # clone project to home assistant config dir
-git clone ${URL} --depth=1
+git clone -b ${BRANCH} ${URL} --depth=1
 # remove exist files
 rm -rf custom_components/${DOMAIN}
 # copy folder to custom_components dir

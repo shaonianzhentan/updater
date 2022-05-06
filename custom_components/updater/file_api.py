@@ -159,3 +159,31 @@ async def download(url, file_path):
             file = await response.read()
             with open(file_path, 'wb') as f:
                 f.write(file)
+
+def git_info(url):
+    GITHUB_FILE_PATTERN = re.compile(
+        r"^https://(github|gitee).com/(?P<repository>.+)/tree/(?P<path>.+)$"
+    )
+    match = GITHUB_FILE_PATTERN.match(url)
+    if match is not None:
+        source, repo, path = match.groups()
+        # get author and project
+        arr = repo.split('/')
+        author = arr[0]
+        project = arr[1]
+        # branch and components
+        arr = path.split('/')
+        branch = arr[0] 
+        #  is not hacs format
+        if arr[1] != 'custom_components':
+            return None 
+        domain = arr[2]
+        return {
+            'url': f'https://{source}/{author}/{project}',
+            'source': source,
+            'author': author,
+            'project': project,
+            'branch': branch,
+            'domain': domain
+        }
+    return None

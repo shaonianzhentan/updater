@@ -179,7 +179,7 @@ def git_info(url):
             return None 
         domain = arr[2]
         return {
-            'url': f'https://{source}/{author}/{project}',
+            'url': f'https://{source}.com/{author}/{project}',
             'source': source,
             'author': author,
             'project': project,

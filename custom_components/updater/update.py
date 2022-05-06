@@ -45,11 +45,8 @@ class EntityUpdate(UpdateEntity):
         self.git_project = info.get('project')
         self.git_source = info.get('source')
         self.manifest = Manifest(info.get('domain'))
-        self.version = self.manifest.version or '未安装'
         # 隐藏更新提示
-        self._attributes = {
-            # 'skipped_version': self._attr_latest_version
-        }
+        self._attributes = {}
 
     @property
     def name(self):
@@ -73,7 +70,7 @@ class EntityUpdate(UpdateEntity):
 
     @property
     def installed_version(self):
-        return self.version
+        return self.manifest.version or '未安装'
 
     def release_notes(self):
         return self.commit_message
@@ -98,7 +95,6 @@ class EntityUpdate(UpdateEntity):
         self.manifest.update()
         print(f'install {self.name}')
         # record lastest version
-        self.version = self._attr_latest_version
 
     async def async_update(self):
         print(f'update {self.name}')
@@ -115,3 +111,5 @@ class EntityUpdate(UpdateEntity):
         date_str = committer.get('date')[:19]
         dt = datetime.datetime.fromisoformat(f'{date_str}+08:00')
         self._attr_latest_version = dt.strftime('%Y-%m-%d %H:%M:%S')
+
+        self._attributes['skipped_version'] = self._attr_latest_version

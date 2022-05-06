@@ -13,7 +13,7 @@ from .const import DOMAIN
 from .file_api import git_info
 
 DATA_SCHEMA = vol.Schema({
-    vol.Required("title"): str,
+    vol.Optional("title"): str,
     vol.Required("url"): str,
 })
 
@@ -29,19 +29,18 @@ class SimpleConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             
             # validate url format
-            info = git_info(user_input['url'])
-            if  info is None:
-                errors['base'] = 'url'
+            url = user_input.get('url')
+            info = git_info(url)
+            if info is None:
+               errors['base'] = 'url'
 
             # validate success
             if errors.get('base', '') == '':
-                title = user_input['title']
+                domain = info.get('domain')
+                title = user_input.get('title', domain)
                 return self.async_create_entry(title=title, data={
                     'title': title,
-                    'branch': info['branch'],
-                    'project': info['project'],
-                    'domain': info['domain'],
-                    'url': info['url']
+                    'url': url
                 })
 
         return self.async_show_form(step_id="user", data_schema=DATA_SCHEMA, errors=errors)

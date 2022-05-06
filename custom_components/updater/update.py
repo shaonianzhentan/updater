@@ -1,4 +1,4 @@
-import requests, os
+import requests, os, datetime, subprocess
 from homeassistant.components.update import (
     UpdateDeviceClass,
     UpdateEntity,
@@ -12,7 +12,7 @@ from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .manifest import manifest, Manifest
-from .file_api import get_current_path, download
+from .file_api import get_current_path, download, git_info
 
 NAME = manifest.name
 DOMAIN = manifest.domain
@@ -27,21 +27,28 @@ async def async_setup_entry(
 
 class EntityUpdate(UpdateEntity):
 
-    _attr_supported_features = UpdateEntityFeature.INSTALL
+    _attr_supported_features = UpdateEntityFeature.INSTALL | UpdateEntityFeature.RELEASE_NOTES
 
     def __init__(self, hass, unique_id, config):
         self.hass = hass
-        self.git_url = config.get('url')
-        self.git_branch = config.get('branch')
-        self.git_project = config.get('project')
-        self._attr_title = config.get('title')
         self._attr_unique_id = unique_id
-        self._attr_release_url = self.git_url
-        self._attr_latest_version = '主分支'
-        self.manifest = Manifest(config.get('domain'))
+        self._attr_title = config.get('title')
+        # config url
+        url = config.get('url')
+        self._attr_release_url = url
+
+        # github url info
+        info = git_info(url)
+        self.git_url = info.get('url')
+        self.git_branch = info.get('branch')
+        self.git_author = info.get('author')
+        self.git_project = info.get('project')
+        self.git_source = info.get('source')
+        self.manifest = Manifest(info.get('domain'))
+        self.version = self.manifest.version or '未安装'
         # 隐藏更新提示
         self._attributes = {
-            'skipped_version': self._attr_latest_version
+            # 'skipped_version': self._attr_latest_version
         }
 
     @property
@@ -66,7 +73,10 @@ class EntityUpdate(UpdateEntity):
 
     @property
     def installed_version(self):
-        return self.manifest.version or '未安装'
+        return self.version
+
+    def release_notes(self):
+        return self.commit_message
 
     async def async_install(self, version: str, backup: bool):
         sh_file = get_current_path(f'{self.name}.sh')
@@ -74,17 +84,29 @@ class EntityUpdate(UpdateEntity):
             # download file of hacs install script
             url = 'https://gitee.com/shaonianzhentan/updater/raw/main/bash/hacs.sh'
             await download(url, sh_file)
-            os.system(f'sh {sh_file}')
+            bash = f'sh {sh_file}'
         else:
             # download file of bash script
             url = 'https://gitee.com/shaonianzhentan/updater/raw/main/bash/install.sh'
             await download(url, sh_file)
             # execute bash script
-            os.system(f'sh {sh_file} {self.git_branch} {self.git_url} {self.git_project} {self.name}')
+            bash = f'sh {sh_file} {self.git_branch} {self.git_url} {self.git_project} {self.name}'
+
+        subprocess.Popen(bash, shell=True)
 
         self._attr_title = f'{self.name} 重启生效'
         self.manifest.update()
         print(f'install {self.name}')
+        # record lastest version
+        self.version = self._attr_latest_version
 
     async def async_update(self):
         print(f'update {self.name}')
+        url = f'https://gitee.com/api/v5/repos/{self.git_author}/{self.git_project}/branches/{self.git_branch}'
+        res = await self.hass.async_add_executor_job(requests.get, (url))
+        data = res.json()
+        commit = data['commit']['commit']
+        self.commit_message = commit.get('message')
+        committer = commit.get('committer')
+        dt = datetime.datetime.fromisoformat(committer.get('date'))
+        self._attr_latest_version = dt.strftime('%Y-%m-%d %H:%M:%S')

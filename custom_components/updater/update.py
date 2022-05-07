@@ -1,4 +1,4 @@
-import requests, os, datetime, subprocess
+import requests, datetime, subprocess, hashlib
 from homeassistant.components.update import (
     UpdateDeviceClass,
     UpdateEntity,
@@ -20,10 +20,29 @@ DOMAIN = manifest.domain
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
-    unique_id = entry.entry_id
-    ent = EntityUpdate(hass, unique_id, entry.data)
-    await ent.async_update()
-    async_add_entities([ ent ])
+    entities = []
+    '''
+    初始化默认加载组件
+    HACS、HomeAssitant
+    '''
+    if DOMAIN not in hass.data:
+        arr = [
+            {
+                'title': 'HACS',
+                'url': 'https://github.com/hacs/integration/tree/main/custom_components/hacs'
+            },
+            {
+                'title': '文件管理',
+                'url': 'https://gitee.com/shaonianzhentan/ha_file_explorer/tree/dev/custom_components/ha_file_explorer'
+            }
+        ]
+        hass.data[DOMAIN] = arr
+        for data in arr:            
+            unique_id = hashlib.md5(data['url'].encode(encoding='UTF-8')).hexdigest()
+            entities.append(EntityUpdate(hass, unique_id, data))
+
+    entities.append(EntityUpdate(hass, entry.entry_id, entry.data))
+    async_add_entities(entities)
 
 class EntityUpdate(UpdateEntity):
 
@@ -45,6 +64,8 @@ class EntityUpdate(UpdateEntity):
         self.git_project = info.get('project')
         self.git_source = info.get('source')
         self.manifest = Manifest(info.get('domain'))
+        self.commit_message = ''
+        self._attr_latest_version = self.installed_version
         # 隐藏更新提示
         self._attributes = {}
 

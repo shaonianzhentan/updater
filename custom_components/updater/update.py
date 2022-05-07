@@ -1,4 +1,4 @@
-import requests, datetime, subprocess, hashlib
+import requests, datetime, os, hashlib, time, _thread
 from homeassistant.components.update import (
     UpdateDeviceClass,
     UpdateEntity,
@@ -34,6 +34,62 @@ async def async_setup_entry(
             {
                 'title': '文件管理',
                 'url': 'https://gitee.com/shaonianzhentan/ha_file_explorer/tree/dev/custom_components/ha_file_explorer'
+            },
+            {
+                'title': 'QQ邮箱',
+                'url': 'https://gitee.com/shaonianzhentan/smtp/tree/main/custom_components/smtp'
+            },
+            {
+                'title': '待办事项',
+                'url': 'https://gitee.com/shaonianzhentan/todoist/tree/master/custom_components/todoist'
+            },
+            {
+                'title': '语音小助手',
+                'url': 'https://gitee.com/shaonianzhentan/conversation/tree/master/custom_components/conversation'
+            },
+            {
+                'title': '小米电视',
+                'url': 'https://gitee.com/shaonianzhentan/xiaomi_tv/tree/main/custom_components/xiaomi_tv'
+            },
+            {
+                'title': '侧边栏面板',
+                'url': 'https://gitee.com/shaonianzhentan/panel_iframe/tree/main/custom_components/panel_iframe'
+            },
+            {
+                'title': 'Yoosee摄像头',
+                'url': 'https://gitee.com/shaonianzhentan/yoosee/tree/master/custom_components/yoosee'
+            },
+            {
+                'title': '浏览器主页',
+                'url': 'https://gitee.com/shaonianzhentan/ha-homepage/tree/master/custom_components/homepage'
+            },
+            {
+                'title': '小说阅读器',
+                'url': 'https://gitee.com/shaonianzhentan/ha-novel/tree/master/custom_components/feedreader'
+            },
+            {
+                'title': '云音乐',
+                'url': 'https://gitee.com/shaonianzhentan/ha_cloud_music/tree/master/custom_components/ha_cloud_music'
+            },
+            {
+                'title': '百度地图',
+                'url': 'https://gitee.com/shaonianzhentan/google_maps/tree/main/custom_components/google_maps'
+            },
+            {
+                'title': '小米网关收音机',
+                'url': 'https://gitee.com/shaonianzhentan/xiaomi_radio/tree/main/custom_components/xiaomi_radio'
+            },
+            {
+                'title': '工作日',
+                'url': 'https://gitee.com/shaonianzhentan/workday/tree/main/custom_components/workday'
+            },
+            {
+                'title': 'IP蓝牙检测在家',
+                'url': 'https://gitee.com/shaonianzhentan/bluetooth_tracker/tree/main/custom_components/bluetooth_tracker'
+            },
+            {
+                'title': '云眸社区',
+                'url': 'https://gitee.com/shaonianzhentan/hikvision/tree/main/custom_components/hikvision'
             }
         ]
         hass.data[DOMAIN] = arr
@@ -46,7 +102,7 @@ async def async_setup_entry(
 
 class EntityUpdate(UpdateEntity):
 
-    _attr_supported_features = UpdateEntityFeature.INSTALL | UpdateEntityFeature.RELEASE_NOTES
+    _attr_supported_features = UpdateEntityFeature.INSTALL | UpdateEntityFeature.RELEASE_NOTES | UpdateEntityFeature.PROGRESS
 
     def __init__(self, hass, unique_id, config):
         self.hass = hass
@@ -64,14 +120,20 @@ class EntityUpdate(UpdateEntity):
         self.git_project = info.get('project')
         self.git_source = info.get('source')
         self.manifest = Manifest(info.get('domain'))
-        self.commit_message = ''
-        self._attr_latest_version = self.installed_version
+        self._attr_latest_version = self.git_branch
         # 隐藏更新提示
-        self._attributes = {}
+        self._attributes = {
+            'skipped_version': self._attr_latest_version
+        }
+        self._in_progress = False
 
     @property
     def name(self):
         return self.manifest.domain
+
+    @property
+    def in_progress(self) -> bool:
+        return self._in_progress
 
     @property
     def device_info(self):
@@ -94,9 +156,11 @@ class EntityUpdate(UpdateEntity):
         return self.manifest.version or '未安装'
 
     def release_notes(self):
-        return self.commit_message
+        return '''
+        '''
 
     async def async_install(self, version: str, backup: bool):
+        self._in_progress = True
         sh_file = custom_components_path(f'{self.name}.sh')
         if self.name == 'hacs':
             # download file of hacs install script
@@ -110,27 +174,16 @@ class EntityUpdate(UpdateEntity):
             # execute bash script
             bash = f'sh {sh_file} {self.git_branch} {self.git_url} {self.git_project} {self.name}'
 
-        subprocess.Popen(bash, shell=True)
+        _thread.start_new_thread(self.exec_script, (bash, ))
 
+    def exec_script(self, bash):
+        os.system(bash)
         self._attr_title = f'{self.name} 重启生效'
         self.manifest.update()
-        print(f'install {self.name}')
-        # record lastest version
+        self._in_progress = False
+        # print(f'install {self.name}')
+        self.hass.services.call('homeassistant', 'update_entity', { 'entity_id': self.entity_id})
 
     async def async_update(self):
-        print(f'update {self.name}')
-        git_api = 'api.github.com' 
-        if self.git_source == 'gitee':
-            git_api = 'gitee.com/api/v5'
-        url = f'https://{git_api}/repos/{self.git_author}/{self.git_project}/branches/{self.git_branch}'
-        
-        res = await self.hass.async_add_executor_job(requests.get, (url))
-        data = res.json()
-        commit = data['commit']['commit']
-        self.commit_message = commit.get('message')
-        committer = commit.get('committer')
-        date_str = committer.get('date')[:19]
-        dt = datetime.datetime.fromisoformat(f'{date_str}+08:00')
-        self._attr_latest_version = dt.strftime('%Y-%m-%d %H:%M:%S')
-
-        self._attributes['skipped_version'] = self._attr_latest_version
+        #print(f'update {self.name}')
+        pass

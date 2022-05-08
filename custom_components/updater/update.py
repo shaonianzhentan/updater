@@ -100,7 +100,7 @@ async def async_setup_entry(
             }
         ]
         hass.data[DOMAIN] = arr
-        for data in arr:            
+        for data in arr:
             unique_id = hashlib.md5(data['url'].encode(encoding='UTF-8')).hexdigest()
             entities.append(EntityUpdate(hass, unique_id, data))
 
@@ -121,7 +121,7 @@ class EntityUpdate(UpdateEntity):
         if url == HOMEASSISTANT:
             self._attr_release_url = 'https://www.home-assistant.io/'
             self._attr_name = url
-            self._attr_latest_version = self.installed_version
+            self._attr_latest_version = 'latest'
         else:
             self._attr_release_url = url
             # github url info
@@ -194,9 +194,12 @@ class EntityUpdate(UpdateEntity):
         _thread.start_new_thread(self.exec_script, (bash, ))
 
     def exec_script(self, bash):
-        os.system(bash)
+        os.system(bash)        
+        if self._attr_name == HOMEASSISTANT:
+            pass
+        else:
+            self.manifest.update()
         self._attr_title = f'{self._attr_name} 重启生效'
-        self.manifest.update()
         self._in_progress = False
         # print(f'install {self._attr_name}')
         self.hass.services.call('homeassistant', 'update_entity', { 'entity_id': self.entity_id})

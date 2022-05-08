@@ -17,9 +17,40 @@
 
 ## 使用
 
-`自定义存储库`填入以下内容
+`自定义存储库`填入任意以下内容
 
-`https://gitee.com/shaonianzhentan/updater/tree/main/custom_components/updater`
+更新程序
+- https://gitee.com/shaonianzhentan/updater/tree/main/custom_components/updater
+
+小米全家桶
+- https://gitee.com/al-one/hass-xiaomi-miot/tree/master/custom_components/xiaomi_miot
+
+小米网关3
+- https://gitee.com/mirrors_AlexxIT/XiaomiGateway3/tree/master/custom_components/xiaomi_gateway3
+
+易微联
+- https://gitee.com/mirrors_AlexxIT/SonoffLAN/tree/master/custom_components/sonoff
+
+NodeRED
+- https://gitee.com/im-in-tianwai/hass-node-red/tree/main/custom_components/nodered
+
+蓝牙监视器
+- https://gitee.com/mirrors_custom-components/ble_monitor/tree/master/custom_components/ble_monitor
+
+微软TTS
+- https://github.com/hasscc/hass-edge-tts/tree/main/custom_components/edge_tts
+
+企业微信通知
+- https://github.com/nesror/ha-wework_notify/tree/main/custom_components/wework_notify
+
+Pyscript
+- https://github.com/custom-components/pyscript/tree/master/custom_components/pyscript
+
+巴法云
+- https://github.com/larry-wong/bemfa/tree/main/custom_components/bemfa
+
+SmartIR
+- https://github.com/smartHomeHub/SmartIR/tree/master/custom_components/smartir
 
 ## 如果这个项目对你有帮助，请我喝杯<del style="font-size: 14px;">咖啡</del>奶茶吧😘
 |  |支付宝|微信|

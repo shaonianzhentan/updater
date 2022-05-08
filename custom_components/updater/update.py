@@ -1,4 +1,4 @@
-import requests, datetime, os, hashlib, time, _thread
+import requests, datetime, os, hashlib, time, _thread, sys
 from homeassistant.components.update import (
     UpdateDeviceClass,
     UpdateEntity,
@@ -6,6 +6,7 @@ from homeassistant.components.update import (
     UpdateEntityFeature
 )
 
+from homeassistant.const import __version__ as current_version
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
@@ -16,6 +17,8 @@ from .file_api import custom_components_path, download, git_info
 
 NAME = manifest.name
 DOMAIN = manifest.domain
+HOMEASSISTANT = 'homeassistant'
+HACS = 'hacs'
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
@@ -27,6 +30,10 @@ async def async_setup_entry(
     '''
     if DOMAIN not in hass.data:
         arr = [
+            {
+                'title': 'Home Assistant',
+                'url': 'homeassistant'
+            },
             {
                 'title': 'HACS',
                 'url': 'https://github.com/hacs/integration/tree/main/custom_components/hacs'
@@ -108,28 +115,30 @@ class EntityUpdate(UpdateEntity):
         self.hass = hass
         self._attr_unique_id = unique_id
         self._attr_title = config.get('title')
+        self._release_notes = ''
         # config url
         url = config.get('url')
-        self._attr_release_url = url
-
-        # github url info
-        info = git_info(url)
-        self.git_url = info.get('url')
-        self.git_branch = info.get('branch')
-        self.git_author = info.get('author')
-        self.git_project = info.get('project')
-        self.git_source = info.get('source')
-        self.manifest = Manifest(info.get('domain'))
-        self._attr_latest_version = self.git_branch
+        if url == HOMEASSISTANT:
+            self._attr_release_url = 'https://www.home-assistant.io/'
+            self._attr_name = url
+            self._attr_latest_version = self.installed_version
+        else:
+            self._attr_release_url = url
+            # github url info
+            info = git_info(url)
+            self._attr_name = info.get('domain')
+            self.git_url = info.get('url')
+            self.git_branch = info.get('branch')
+            self.git_author = info.get('author')
+            self.git_project = info.get('project')
+            self.git_source = info.get('source')
+            self.manifest = Manifest(self._attr_name)
+            self._attr_latest_version = self.git_branch
         # 隐藏更新提示
         self._attributes = {
             'skipped_version': self._attr_latest_version
         }
         self._in_progress = False
-
-    @property
-    def name(self):
-        return self.manifest.domain
 
     @property
     def in_progress(self) -> bool:
@@ -153,37 +162,51 @@ class EntityUpdate(UpdateEntity):
 
     @property
     def installed_version(self):
+        if self._attr_name == HOMEASSISTANT:
+            return current_version
+
         return self.manifest.version or '未安装'
 
     def release_notes(self):
-        return '''
-        '''
+        return self._release_notes
 
     async def async_install(self, version: str, backup: bool):
         self._in_progress = True
-        sh_file = custom_components_path(f'{self.name}.sh')
-        if self.name == 'hacs':
+        sh_file = custom_components_path(f'{self._attr_name}.sh')
+        if self._attr_name == HACS:
             # download file of hacs install script
             url = 'https://gitee.com/shaonianzhentan/updater/raw/main/bash/hacs.sh'
             await download(url, sh_file)
             bash = f'sh {sh_file}'
+        elif self._attr_name == HOMEASSISTANT:
+            # upgrade homeassistant
+            url = 'https://gitee.com/shaonianzhentan/updater/raw/main/bash/homeassistant.sh'
+            await download(url, sh_file)
+            python_version = sys.version_info
+            bash = f'sh {sh_file} python{python_version[0]}.{python_version[1]}'
         else:
             # download file of bash script
             url = 'https://gitee.com/shaonianzhentan/updater/raw/main/bash/install.sh'
             await download(url, sh_file)
             # execute bash script
-            bash = f'sh {sh_file} {self.git_branch} {self.git_url} {self.git_project} {self.name}'
+            bash = f'sh {sh_file} {self.git_branch} {self.git_url} {self.git_project} {self._attr_name}'
 
         _thread.start_new_thread(self.exec_script, (bash, ))
 
     def exec_script(self, bash):
         os.system(bash)
-        self._attr_title = f'{self.name} 重启生效'
+        self._attr_title = f'{self._attr_name} 重启生效'
         self.manifest.update()
         self._in_progress = False
-        # print(f'install {self.name}')
+        # print(f'install {self._attr_name}')
         self.hass.services.call('homeassistant', 'update_entity', { 'entity_id': self.entity_id})
 
     async def async_update(self):
-        #print(f'update {self.name}')
-        pass
+        if self._attr_name == HOMEASSISTANT:
+            url = 'https://api.github.com/repos/home-assistant/core/releases/latest'
+            res = await self.hass.async_add_executor_job(requests.get, (url))
+            data = res.json()
+            self._attr_latest_version = data.get('name')
+            self._release_notes = data.get('body')
+        else:
+            self._release_notes = ''

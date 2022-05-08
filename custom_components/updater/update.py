@@ -97,6 +97,10 @@ async def async_setup_entry(
             {
                 'title': '云眸社区',
                 'url': 'https://gitee.com/shaonianzhentan/hikvision/tree/main/custom_components/hikvision'
+            },
+            {
+                'title': '云备份',
+                'url': 'https://gitee.com/shaonianzhentan/cloud_backup/tree/main/custom_components/cloud_backup'
             }
         ]
         hass.data[DOMAIN] = arr

@@ -1,7 +1,7 @@
 {
     "domain": "updater",
     "name": "\u66F4\u65B0\u7A0B\u5E8F",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "config_flow": true,
     "documentation": "https://github.com/shaonianzhentan/updater",
     "dependencies": [],

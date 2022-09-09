@@ -1,11 +1,13 @@
 import os, shutil, uuid, yaml, logging, aiohttp, json, urllib, hashlib, datetime, asyncio, base64, re, zipfile, tempfile, time
 
+CURRENT_PATH = os.path.dirname(__file__).replace('/updater', '/')
+
 # 获取当前路径
 def get_current_path(file_path):
-    return os.path.abspath('./custom_components/updater/' + file_path)
+    return CURRENT_PATH + '/' + file_path
 
 def custom_components_path(file_path):
-    return os.path.abspath('./custom_components/' + file_path)
+    return CURRENT_PATH.replace('/updater', '/') + file_path
 
 # 获取当前文件列表
 def get_dir_list(dir):

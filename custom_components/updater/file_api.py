@@ -1,6 +1,6 @@
 import os, shutil, uuid, yaml, logging, aiohttp, json, urllib, hashlib, datetime, asyncio, base64, re, zipfile, tempfile, time
 
-CURRENT_PATH = os.path.dirname(__file__).replace('/updater', '/')
+CURRENT_PATH = os.path.dirname(__file__)
 
 # 获取当前路径
 def get_current_path(file_path):
